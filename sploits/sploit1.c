@@ -7,8 +7,6 @@
 #define TARGET "../targets/target1"
 #define LENGTH 124
 #define ADDR_LEN 4
-#define NOP '\x90'
-#define NOP_NUM LENGTH-strlen(shellcode)-ADDR_LEN
 
 int
 main ( int argc, char * argv[] )
