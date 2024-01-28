@@ -18,11 +18,23 @@ void print_hexcode(const char *shellcode) {
 	printf("\n");
 }
 
-void print_argv(char *argv[]) {
+void print_argv(char *argv[], char *env[]) {
+    int i = 0;
     printf("Printing char *argv[]:\n");
     while (*argv != NULL) {
-        printf("%s\n", *argv);
+        printf("argv[%d] ", i);
+        print_hexcode(*argv);
         argv++;
+        i++;
+    }
+    
+    i = 0;
+    printf("Printing char *env[]:\n");
+    while (*env != NULL) {
+        printf("env[%d] ", i);
+        print_hexcode(*env);
+        env++;
+        i++;
     }
 }
 
