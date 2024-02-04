@@ -7,7 +7,6 @@
 #define TARGET "../targets/target3"
 #define LENGTH 72
 #define ADDR_LEN 4
-#define NOP '\x90'
 
 int
 main ( int argc, char * argv[] )
