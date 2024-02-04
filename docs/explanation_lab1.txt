@@ -34,8 +34,12 @@ Exploit: This overflow vulnerability permits us to alter the values of variables
          The presence of NULL characters prematurely terminates the exploit string. The exploit utilizes multiple environment variables to resolve it.
 
 5. Target5
-Vulnerability: 
-Exploit: 
+Vulnerability: The vulnerability of target4.c is at line 16 triggered by an risky use of snprintf(), which allows us to read values much above the place of
+               argument list of the printf on stack, and perform writings to specific address to overwrite the return address.
+Exploit: We first tested out the distance between the initial position of the pointer and the position of formatString lying in the foo() frame by playing with 
+         target.c. We then determined the address of shellcode by calculatiion using the address of formatString and corresponding offset. This will be written into 
+         address specified by us using the functionality of %hhn. Those values are calculated as the cumulative printed length. Therefore we carefully choose correct 
+         values so that the 4 bytes of address of shellcode could be written. Other explanations with more details could be found in the sploit5.c file.
 
 6. Target6
 Vulnerability: 
