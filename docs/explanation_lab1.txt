@@ -1,0 +1,36 @@
+#Chuyue Zhang, 1005728303, zhangchuyue.zhang@mail.utoronto.ca
+#Da Ma, , 
+
+1. Target1
+Vulnerability: The vulnerability of target1.c is at line 8. The input string argv[1] is copied to buf without checking the length. 
+               Since the size of the buf is 96, the input longer than 96 would cause a buffer overflow problem. 
+Exploit: We could exploit this buffer overflow problem by inputting a large-size argv[1]. 
+         Then the strcpy() function at line 8 would copy the input to the buf on the stack. 
+         Finally, it would overwrite the return address of the function lab_main at address 0x3021fec8 by the input characters. 
+         Thus, we could write the address of the shellcode at this position. Then the process would execute the shellcode when it returns. 
+
+2. Target2
+Vulnerability: 
+Exploit: 
+
+3. Target3
+Vulnerability: The vulnerability of target3.c is at line 14. The element of the input string argv[1] is copied to buf one by one. 
+               The restriction of the copy length ltarg, which is 88. Since the size of the buf is 64, 
+               an input longer than 64 would cause a buffer overflow problem. 
+Exploit: We could exploit this buffer overflow problem by inputting a large-size argv[1]. 
+         Then the element copy process at line 8 would copy the input to the buf on the stack. 
+         Finally, it would overwrite the return address of the function foo at address 0x3021fe98 by the input characters. 
+         Thus, we could write the address of the shellcode at this position. Then the process would execute the shellcode when it returns.
+         One thing to notice is that the copy process starts at 0x3021fe54, not 0x3021fe50 due to the process at line 13.
+
+4. Target4
+Vulnerability: 
+Exploit: 
+
+5. Target5
+Vulnerability: 
+Exploit: 
+
+6. Target6
+Vulnerability: 
+Exploit: 
