@@ -10,10 +10,10 @@ Exploit: We could exploit this buffer overflow problem by inputting a large-size
          Thus, we could write the address of the shellcode at this position. Then the process would execute the shellcode when it returns. 
 
 2. Target2
-Vulnerability: The vulnerability of target2.c is at line 14 & 15, where in foo a loop is applied for string copy.
-               272 bytes of copying to buffer with 256 bytes results in an overflow.
-Exploit: Due to the possiblity of overflow, we copied arbitrary bytes into stack by overwriting the values of len and i, through which 
-         the shellcode injected in the buffer could be executed. Another point to mention is that evironment variables are used to avoid
+Vulnerability: The vulnerability of target2.c is at lines 14 & 15, wherein foo a loop is applied for string copy.
+               272 bytes of copying to a buffer with 256 bytes results in an overflow.
+Exploit: Due to the possibility of overflow, we copied arbitrary bytes into the stack by overwriting the values of len and i, through which 
+         the shellcode injected in the buffer could be executed. Another point to mention is that environment variables are used to avoid
          undesired termination of exploit buffer caused by "\x00".
 
 3. Target3
@@ -27,20 +27,25 @@ Exploit: We could exploit this buffer overflow problem by inputting a large-size
          One thing to notice is that the copy process starts at 0x3021fe54, not 0x3021fe50 due to the process at line 13.
 
 4. Target4
-Vulnerability: The vulnerability of target4.c is at line 20, where in foo a loop is applied for string copy via pointers. Again, 169 bytes were 
+Vulnerability: The vulnerability of target4.c is at line 20, wherein foo a loop is applied for string copy via pointers. Again, 169 bytes were 
                copied into a chunk of memory of 156 bytes, which causes an overflow.
 Exploit: This overflow vulnerability permits us to alter the values of variables i and len, thereby enabling the copying of an arbitrary number of 
          bytes onto the stack. As stated in target 2, the values of len and i suggest the presence of "\x00" within their hexadecimal representations. 
          The presence of NULL characters prematurely terminates the exploit string. The exploit utilizes multiple environment variables to resolve it.
 
 5. Target5
-Vulnerability: The vulnerability of target4.c is at line 16 triggered by an risky use of snprintf(), which allows us to read values much above the place of
-               argument list of the printf on stack, and perform writings to specific address to overwrite the return address.
+Vulnerability: The vulnerability of target5.c is at line 16 triggered by a risky use of snprintf(), which allows us to read values much above the place of
+               the argument list of the printf() on the stack, and perform writings to a specific address to overwrite the return address.
 Exploit: We first tested out the distance between the initial position of the pointer and the position of formatString lying in the foo() frame by playing with 
-         target.c. We then determined the address of shellcode by calculatiion using the address of formatString and corresponding offset. This will be written into 
-         address specified by us using the functionality of %hhn. Those values are calculated as the cumulative printed length. Therefore we carefully choose correct 
-         values so that the 4 bytes of address of shellcode could be written. Other explanations with more details could be found in the sploit5.c file.
+         target.c. We then determined the address of the shellcode by calculation using the address of formatString and the corresponding offset. This will be written into 
+         the address specified by us using the functionality of %hhn. Those values are calculated as the cumulative printed length. Therefore we carefully choose correct 
+         values so that the 4 bytes of address of the shellcode could be written. Other explanations with more details could be found in the sploit5.c file.
 
 6. Target6
-Vulnerability: 
-Exploit: 
+Vulnerability: The vulnerability of target6.c is at line 36. In the foo() function, the program first allocates p and q in the heap and then deallocates both memories. 
+               Later, it allocates pointer p but deallocates pointer q again. This creates a double pointer-free environment. Meanwhile, the allocation content of p is 
+               the input parameter of the program. Due to the implementation of function tfree(), attackers could write values to specific addresses to use the input. 
+Exploit: Since the pointer q is still at the original position on the heap. After allocating the pointer p, copying the input parameter into the memory, we could rewrite 
+         the value of the pointer q. When calling tfree(), we are trying to consolidate memory chunks. It would relink the pointers of memory tags. If we set the value of 
+         the left pointer of q to be the shellcode address, and the right pointer of q to be the return address. Then we could set the return address of the frame to be 
+         the address of the shellcode. 
