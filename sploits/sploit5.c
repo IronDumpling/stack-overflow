@@ -47,7 +47,7 @@ int main(void)
 
   // Encode format string to achieve desired hack
   /*
-    Partition 0x3021fa20:
+    Partition 0x3021fa30:
     0x30: 48
     0xfa: 250
     0x21: 33
@@ -55,7 +55,7 @@ int main(void)
 
     Calculate the difference as %hhn writes the cumulative printed length:
     0x30
-    0xfa - 0x20 = 202
+    0xfa - 0x30 = 202
     0x121 - 0x0fa = 39
     0x30 - 0x21 = 15
 
